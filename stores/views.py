@@ -3,8 +3,8 @@ from django.contrib.gis.db.models.functions import Distance
 from django.utils.translation import gettext_lazy as _
 from django.views import generic
 from oscar.core.loading import get_class, get_model
-
-StoreSearchForm = get_class('stores.forms', 'StoreSearchForm')
+from .forms import StoreSearchForm
+# StoreSearchForm = get_class('stores.forms', 'StoreSearchForm')
 Store = get_model('stores', 'store')
 
 
@@ -43,7 +43,7 @@ class StoreListView(MapsContextMixin, generic.ListView):
             return queryset
 
         data = self.form.cleaned_data
-
+        
         group = data.get('group', None)
         if group:
             queryset = queryset.filter(group=group)

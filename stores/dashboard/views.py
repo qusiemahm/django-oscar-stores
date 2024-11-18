@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import generic
 from extra_views import CreateWithInlinesView, InlineFormSetFactory, UpdateWithInlinesView
 from oscar.core.loading import get_class, get_classes, get_model
+from django.http import Http404
 
 MapsContextMixin = get_class('stores.views', 'MapsContextMixin')
 (DashboardStoreSearchForm,
@@ -53,6 +54,14 @@ class StoreListView(generic.ListView):
 
     def get_queryset(self):
         qs = self.model.objects.all()
+        # Restrict to stores for the current vendor
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'vendor_users'):
+
+            vendor = self.request.user.vendor_users.first()
+            qs = qs.filter(vendor=vendor)
+        else:
+            qs = qs.none()  # If no vendor is associated, return an empty queryset
+
         self.filterform = self.filterform_class(self.request.GET)
         if self.filterform.is_valid():
             qs = self.filterform.apply_filters(qs)
@@ -80,6 +89,11 @@ class OpeningPeriodInline(InlineFormSetFactory):
 class StoreEditMixin(MapsContextMixin):
     inlines = [OpeningHoursInline, StoreAddressInline]
 
+    def forms_valid(self, form, inlines):
+        # Set the vendor for new stores created
+        if not form.instance.pk:  # Only set the vendor on creation, not update
+            form.instance.vendor = self.request.user.vendor_users.first()
+        return super().forms_valid(form, inlines)
 
 class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
     model = Store
@@ -98,13 +112,28 @@ class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
             "Your submitted data was not valid - please correct the below errors")
         return super().forms_invalid(form, inlines)
 
-    def forms_valid(self, form, inlines):
-        response = super().forms_valid(form, inlines)
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        form = self.get_form()
+        inlines = self.construct_inlines()
 
-        msg = render_to_string('stores/dashboard/messages/store_saved.html',
-                               {'store': self.object})
-        messages.success(self.request, msg, extra_tags='safe')
-        return response
+        if form.is_valid():
+            # Save the store instance to get a primary key
+            vendor = self.request.user.vendor_users.first()
+            if not vendor:
+                messages.error(self.request, _("You do not have an associated vendor to create a store."))
+                return self.form_invalid(form)
+            
+            form.instance.vendor = vendor
+            self.object = form.save()  # Save the primary instance
+
+            # Validate and save inlines
+            if all(inline.is_valid() for inline in inlines):
+                return self.forms_valid(form, inlines)
+            else:
+                return self.forms_invalid(form, inlines)
+        else:
+            return self.form_invalid(form)
 
 
 class StoreUpdateView(StoreEditMixin, UpdateWithInlinesView):
@@ -112,6 +141,17 @@ class StoreUpdateView(StoreEditMixin, UpdateWithInlinesView):
     template_name = "stores/dashboard/store_update.html"
     form_class = StoreForm
     success_url = reverse_lazy('stores-dashboard:store-list')
+
+    def get_object(self, queryset=None):
+        """Override to ensure the store belongs to the current vendor."""
+        obj = super().get_object(queryset)
+        print("obj: ", obj)
+        print("obj.vendor: ", obj.vendor)
+        print("self.request.user.vendor_users: ", self.request.user.vendor_users.first())
+
+        if obj.vendor != self.request.user.vendor_users.first():
+            raise Http404("You do not have permission to access this store.")
+        return obj
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -136,6 +176,13 @@ class StoreDeleteView(generic.DeleteView):
     template_name = "stores/dashboard/store_delete.html"
     success_url = reverse_lazy('stores-dashboard:store-list')
 
+    def get_object(self, queryset=None):
+        """Override to ensure the store belongs to the current vendor."""
+        obj = super().get_object(queryset)
+        if obj.vendor != self.request.user.vendor_users.first():
+            raise Http404("You do not have permission to delete this store.")
+        return obj
+    
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         for time in self.object.opening_periods.all():

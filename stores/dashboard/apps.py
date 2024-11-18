@@ -10,7 +10,15 @@ class StoresDashboardConfig(OscarDashboardConfig):
 
     namespace = 'stores-dashboard'
 
-    default_permissions = ['is_staff']
+    # default_permissions = ['is_staff']
+
+    def has_permission(self, user):
+        """
+        Override this method to check if the user is associated with an active vendor.
+        """
+        # Import the function only when needed to avoid circular dependency issues
+        from server.apps.vendor.utils import is_user_active_vendor
+        return user.is_authenticated and is_user_active_vendor(user)
 
     def ready(self):
         self.store_list_view = get_class('stores.dashboard.views', 'StoreListView')

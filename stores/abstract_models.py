@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from oscar.apps.address.abstract_models import AbstractAddress
 from oscar.core.utils import slugify
 
+from server.apps.vendor.models import Vendor
 from stores.managers import StoreManager
 from stores.utils import get_geodetic_srid
 
@@ -49,6 +50,7 @@ class StoreGroup(models.Model):
 
 
 class Store(models.Model):
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='branches')
     name = models.CharField(_('Name'), max_length=100)
     slug = models.SlugField(_('Slug'), max_length=100, null=True)
 
@@ -78,6 +80,10 @@ class Store(models.Model):
         _("Location"),
         srid=get_geodetic_srid(),
     )
+    is_main = models.BooleanField(default=False)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+
 
     group = models.ForeignKey(
         'stores.StoreGroup',
