@@ -55,9 +55,9 @@ class StoreListView(generic.ListView):
     def get_queryset(self):
         qs = self.model.objects.all()
         # Restrict to stores for the current vendor
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'vendor_users'):
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'vendor'):
 
-            vendor = self.request.user.vendor_users.first()
+            vendor = self.request.user.vendor
             qs = qs.filter(vendor=vendor)
         else:
             qs = qs.none()  # If no vendor is associated, return an empty queryset
@@ -92,7 +92,7 @@ class StoreEditMixin(MapsContextMixin):
     def forms_valid(self, form, inlines):
         # Set the vendor for new stores created
         if not form.instance.pk:  # Only set the vendor on creation, not update
-            form.instance.vendor = self.request.user.vendor_users.first()
+            form.instance.vendor = self.request.user.vendor
         return super().forms_valid(form, inlines)
 
 class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
@@ -119,7 +119,7 @@ class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
 
         if form.is_valid():
             # Save the store instance to get a primary key
-            vendor = self.request.user.vendor_users.first()
+            vendor = self.request.user.vendor
             if not vendor:
                 messages.error(self.request, _("You do not have an associated vendor to create a store."))
                 return self.form_invalid(form)
@@ -147,9 +147,9 @@ class StoreUpdateView(StoreEditMixin, UpdateWithInlinesView):
         obj = super().get_object(queryset)
         print("obj: ", obj)
         print("obj.vendor: ", obj.vendor)
-        print("self.request.user.vendor_users: ", self.request.user.vendor_users.first())
+        print("self.request.user.vendor: ", self.request.user.vendor)
 
-        if obj.vendor != self.request.user.vendor_users.first():
+        if obj.vendor != self.request.user.vendor:
             raise Http404("You do not have permission to access this store.")
         return obj
 
@@ -179,7 +179,7 @@ class StoreDeleteView(generic.DeleteView):
     def get_object(self, queryset=None):
         """Override to ensure the store belongs to the current vendor."""
         obj = super().get_object(queryset)
-        if obj.vendor != self.request.user.vendor_users.first():
+        if obj.vendor != self.request.user.vendor:
             raise Http404("You do not have permission to delete this store.")
         return obj
     
