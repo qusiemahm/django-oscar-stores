@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from django.db import IntegrityError
 from django.core.cache import cache
+from server.apps.vendor.mixins import VendorMixin
 
 MapsContextMixin = get_class('stores.views', 'MapsContextMixin')
 (DashboardStoreSearchForm,
@@ -32,7 +33,7 @@ StoreAddress = get_model('stores', 'StoreAddress')
 StoreStatus = get_model('stores', 'StoreStatus')
 
 
-class StoreListView(generic.ListView):
+class StoreListView(VendorMixin, generic.ListView):
     model = Store
     template_name = "stores/dashboard/store_list.html"
     context_object_name = "store_list"
@@ -61,12 +62,11 @@ class StoreListView(generic.ListView):
         return data
 
     def get_queryset(self):
-        qs = self.model.objects.all()
         # Restrict to stores for the current vendor
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'vendor'):
+        if self.request.user.is_authenticated:
+            vendor = self.get_vendor()
+            qs = self.model.objects.filter(vendor=vendor)
 
-            vendor = self.request.user.vendor
-            qs = qs.filter(vendor=vendor)
         else:
             qs = qs.none()  # If no vendor is associated, return an empty queryset
 

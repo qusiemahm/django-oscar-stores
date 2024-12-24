@@ -205,7 +205,7 @@ class Store(models.Model):
 class OpeningPeriod(models.Model):
     PERIOD_FORMAT = _("%(start)s - %(end)s")
     (MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
-     FRIDAY, SATURDAY, SUNDAY, PUBLIC_HOLIDAYS) = range(1, 9)
+     FRIDAY, SATURDAY, SUNDAY) = range(1, 8)
     WEEK_DAYS = {
         MONDAY: _("Monday"),
         TUESDAY: _("Tuesday"),
@@ -214,7 +214,6 @@ class OpeningPeriod(models.Model):
         FRIDAY: _("Friday"),
         SATURDAY: _("Saturday"),
         SUNDAY: _("Sunday"),
-        PUBLIC_HOLIDAYS: _("Public Holidays")
     }
     store = models.ForeignKey('stores.Store', models.CASCADE, verbose_name=_("Store"),
                               related_name='opening_periods')
