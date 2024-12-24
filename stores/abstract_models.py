@@ -5,10 +5,14 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from oscar.apps.address.abstract_models import AbstractAddress
 from oscar.core.utils import slugify
+from django.core.cache import cache
 
 from server.apps.vendor.models import Vendor
 from stores.managers import StoreManager
 from stores.utils import get_geodetic_srid
+from django.utils import timezone
+from datetime import time
+from datetime import timedelta
 
 
 # Re-use Oscar's address model
@@ -120,7 +124,84 @@ class Store(models.Model):
     def has_contact_details(self):
         return any([self.manager_name, self.phone, self.email])
 
+    @property
+    def is_open(self):
+        """
+        Determines if the store is currently open based on the current status.
+        Utilizes the shared _get_current_status method for consistency.
+        """
+        status, _ = self._get_current_status()
+        return status == 'Open'
 
+    @property
+    def status_info(self):
+        """
+        Provides detailed status information of the store.
+        Utilizes the shared _get_current_status method for consistency.
+        """
+        status, remaining_time = self._get_current_status()
+        print("status: ", status, " remaining_time: ", remaining_time)
+        return {
+            'status': status,
+            'remaining_time': remaining_time
+        }
+
+    def _get_current_status(self):
+        """
+        Determines the current status of the store.
+        Implements caching with a 60-second timeout to improve performance.
+
+        Returns:
+            Tuple[str, timedelta or None]: A tuple containing the status and the remaining time if applicable.
+        """
+        cache_key = f'store_status_{self.pk}'
+        cached_status = cache.get(cache_key)
+        if cached_status is not None:
+            return cached_status
+
+        now = timezone.now()
+        current_time = now.time()
+        current_weekday = now.isoweekday()
+
+        # Check if current time is within opening hours
+        opening_periods = self.opening_periods.filter(weekday=current_weekday)
+        within_opening_hours = False
+        for period in opening_periods:
+            start_time = period.start if period.start else time(0, 0)
+            end_time = period.end if period.end else time(23, 59, 59)
+            if start_time <= current_time <= end_time:
+                within_opening_hours = True
+                break
+
+        if not within_opening_hours:
+            status = 'Closed'
+            cache.set(cache_key, (status, None), timeout=60)
+            return status, None
+
+        # Within opening hours, check the latest active StoreStatus
+        active_status = self.statuses.filter(
+            set_at__lte=now,
+            expires_at__gte=now
+        ).order_by('-set_at').first()
+        print("active_status: ", active_status)
+        if active_status:
+            status_display = active_status.get_status_display()
+            if active_status.status in [StoreStatus.StatusChoices.BUSY, StoreStatus.StatusChoices.CLOSED]:
+                remaining_time = active_status.expires_at - now
+                remaining_time = max(remaining_time, timedelta(seconds=0))
+                cache.set(cache_key, (status_display, remaining_time), timeout=60)
+                return status_display, remaining_time
+            elif active_status.status == StoreStatus.StatusChoices.OPEN:
+                status = 'Open'
+            else:
+                status = 'Closed'  # Default to 'Closed' for unrecognized statuses
+        else:
+            # No active status, assume open as within opening hours
+            status = 'Open'
+
+        cache.set(cache_key, (status, None), timeout=60)
+        return status, None
+    
 class OpeningPeriod(models.Model):
     PERIOD_FORMAT = _("%(start)s - %(end)s")
     (MONDAY, TUESDAY, WEDNESDAY, THURSDAY,
@@ -228,3 +309,39 @@ class StoreStock(models.Model):
     @property
     def is_available_to_buy(self):
         return self.num_in_stock > self.num_allocated
+
+class StoreStatus(models.Model):
+    class StatusChoices(models.TextChoices):
+        OPEN = 'open', _('Open')
+        CLOSED = 'closed', _('Closed')
+        BUSY = 'busy', _('Busy')
+
+    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='statuses')
+    status = models.CharField(max_length=10, choices=StatusChoices.choices)
+    duration = models.DurationField(null=True, blank=True, help_text=_("Duration for which the status is active"))
+    set_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+
+        super().save(*args, **kwargs)  # Save to assign set_at if new
+
+        if self.duration:
+            # Calculate expires_at based on duration
+            self.expires_at = self.set_at + self.duration
+        else:
+            # Permanent status
+            self.expires_at = None
+
+        # Avoid recursive save calls by checking if expires_at needs updating
+        if self.expires_at != self.__class__.objects.get(pk=self.pk).expires_at:
+            self.save(update_fields=['expires_at'])
+
+    def __str__(self):
+        return f"{self.store.name} - {self.get_status_display()}"
+
+    class Meta:
+        verbose_name = _("Store Status")
+        verbose_name_plural = _("Store Statuses")
+        ordering = ['-set_at']
+        

@@ -30,6 +30,7 @@ class StoresDashboardConfig(OscarDashboardConfig):
         self.store_group_create_view = get_class('stores.dashboard.views', 'StoreGroupCreateView')
         self.store_group_update_view = get_class('stores.dashboard.views', 'StoreGroupUpdateView')
         self.store_group_delete_view = get_class('stores.dashboard.views', 'StoreGroupDeleteView')
+        self.change_store_status = get_class('stores.dashboard.views', 'change_store_status')
 
     def get_urls(self):
         urls = [
@@ -41,5 +42,7 @@ class StoresDashboardConfig(OscarDashboardConfig):
             path('groups/create/', self.store_group_create_view.as_view(), name='store-group-create'),
             path('groups/update/<int:pk>/', self.store_group_update_view.as_view(), name='store-group-update'),
             path('groups/delete/<int:pk>/', self.store_group_delete_view.as_view(), name='store-group-delete'),
+            path('change-store-status/', self.change_store_status, name='change_store_status'),
+
         ]
         return self.post_process_urls(urls)

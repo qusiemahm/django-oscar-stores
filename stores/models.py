@@ -1,4 +1,6 @@
 from oscar.core.loading import is_model_registered
+from auditlog.registry import auditlog
+from django.utils.translation import gettext_lazy as _
 
 from . import abstract_models
 
@@ -23,6 +25,11 @@ if not is_model_registered('stores', 'Store'):
     class Store(abstract_models.Store):
         pass
 
+        class Meta:
+            verbose_name = _("Branch")
+            verbose_name_plural = _("Branches")
+            app_label = 'stores'
+
     __all__.append('Store')
 
 
@@ -38,3 +45,10 @@ if not is_model_registered('stores', 'StoreStock'):
         pass
 
     __all__.append('StoreStock')
+
+
+auditlog.register(StoreAddress)
+auditlog.register(StoreGroup)
+auditlog.register(Store)
+auditlog.register(OpeningPeriod)
+auditlog.register(StoreStock)

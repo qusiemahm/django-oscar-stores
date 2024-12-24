@@ -7,6 +7,13 @@ from django.views import generic
 from extra_views import CreateWithInlinesView, InlineFormSetFactory, UpdateWithInlinesView
 from oscar.core.loading import get_class, get_classes, get_model
 from django.http import Http404
+from django.utils.timezone import now, timedelta
+from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_POST
+from django.db import IntegrityError
+from django.core.cache import cache
 
 MapsContextMixin = get_class('stores.views', 'MapsContextMixin')
 (DashboardStoreSearchForm,
@@ -22,6 +29,7 @@ Store = get_model('stores', 'Store')
 StoreGroup = get_model('stores', 'StoreGroup')
 OpeningPeriod = get_model('stores', 'OpeningPeriod')
 StoreAddress = get_model('stores', 'StoreAddress')
+StoreStatus = get_model('stores', 'StoreStatus')
 
 
 class StoreListView(generic.ListView):
@@ -239,3 +247,68 @@ class StoreGroupDeleteView(generic.DeleteView):
         response = super().form_valid(form)
         messages.success(self.request, _("Store group deleted"))
         return response
+
+@csrf_protect
+@require_POST
+def change_store_status(request):
+    store_id = request.POST.get('store_id')
+    new_status = request.POST.get('status')
+    duration_choice = request.POST.get('duration')
+
+    # Validate required fields
+    if not store_id or not new_status:
+        messages.error(request, "Invalid store ID or status.")
+        return redirect(reverse('stores-dashboard:store-list'))
+    
+    # Fetch the store or return 404 if not found
+    store = get_object_or_404(Store, id=store_id)
+    print("status: ", store, new_status, duration_choice)
+
+    # Calculate duration based on duration_choice
+    duration_mapping = {
+        "end_of_day": timedelta(hours=now().hour, minutes=now().minute, seconds=now().second, microseconds=now().microsecond),
+        "permanently": None,
+        "1_hour": timedelta(hours=1),
+        "2_hours": timedelta(hours=2),
+    }
+
+    duration = duration_mapping.get(duration_choice, None)
+
+    # Determine duration to set
+    if duration_choice == "end_of_day":
+        # Calculate duration until the end of the day
+        end_of_day = now().replace(hour=23, minute=59, second=59, microsecond=999999)
+        duration = end_of_day - now()
+
+    # Try to update an existing active StoreStatus
+    try:
+        # Create a new StoreStatus entry
+        StoreStatus.objects.create(
+            store=store,
+            status=new_status,
+            duration=duration,
+            set_at=now(),
+            expires_at=(now() + duration) if duration else None,
+        )
+    except StoreStatus.DoesNotExist:
+        try:
+            # Update or create the StoreStatus object
+            StoreStatus.objects.update_or_create(
+                store=store,  # Match condition
+                defaults={
+                    'status': new_status,  # Fields to update or set
+                    'duration': duration,
+                    'set_at': now()
+                }
+            )
+            messages.success(request, f"Store status set to {new_status} successfully.")
+        except IntegrityError:
+            # Handle the case where another active StoreStatus was created concurrently
+            messages.error(request, "Unable to set store status due to a concurrent update. Please try again.")
+    
+    # Invalidate the cache for the store's current status
+    cache_key = f'store_status_{store.pk}'
+    cache.delete(cache_key)
+
+    # Redirect back to the store list page or any other desired page
+    return redirect(reverse('stores-dashboard:store-list'))

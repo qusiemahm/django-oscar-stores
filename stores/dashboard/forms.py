@@ -14,17 +14,22 @@ class StoreAddressForm(forms.ModelForm):
     class Meta:
         model = get_model('stores', 'StoreAddress')
         fields = [
-            'line1', 'line2', 'line3', 'line4', 'state', 'postcode', 'country']
+            'line1', 'line2', 'line3', 'line4', 'postcode', 'country']
 
 
 class StoreForm(forms.ModelForm):
     location = fields.GeometryField(widget=forms.HiddenInput())
-
+    is_open = forms.BooleanField(
+        label="Is Open",
+        required=False,
+        help_text="Indicates if the store is currently open based on its schedule and status."
+    )
     class Meta:
         model = Store
         fields = [
             'name', 'manager_name', 'phone', 'email', 'reference', 'image',
             'description', 'location', 'group', 'is_pickup_store', 'is_active',
+            'is_open',
         ]
         widgets = {
             'description': forms.Textarea(attrs={'cols': 40, 'rows': 10}),
@@ -37,6 +42,7 @@ class StoreForm(forms.ModelForm):
         instance = kwargs.get('instance', None)
         if instance:
             self.initial['location'] = instance.location.geojson
+            self.initial['is_open'] = instance.is_open
 
     def clean_reference(self):
         ref = self.cleaned_data['reference']
