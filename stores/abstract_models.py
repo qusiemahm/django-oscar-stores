@@ -140,7 +140,6 @@ class Store(models.Model):
         Utilizes the shared _get_current_status method for consistency.
         """
         status, remaining_time = self._get_current_status()
-        print("status: ", status, " remaining_time: ", remaining_time)
         return {
             'status': status,
             'remaining_time': remaining_time

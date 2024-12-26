@@ -65,14 +65,16 @@ class StoreListView(VendorMixin, generic.ListView):
         # Restrict to stores for the current vendor
         if self.request.user.is_authenticated:
             vendor = self.get_vendor()
-            qs = self.model.objects.filter(vendor=vendor)
-
+            if vendor:
+                qs = self.model.objects.filter(vendor=vendor)
+            else:
+                qs = self.model.objects.none()  # If no vendor is associated, return an empty queryset
         else:
-            qs = qs.none()  # If no vendor is associated, return an empty queryset
-
+            qs = self.model.objects.none()
         self.filterform = self.filterform_class(self.request.GET)
         if self.filterform.is_valid():
             qs = self.filterform.apply_filters(qs)
+            
         return qs
 
 
@@ -103,7 +105,7 @@ class StoreEditMixin(MapsContextMixin):
             form.instance.vendor = self.request.user.vendor
         return super().forms_valid(form, inlines)
 
-class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
+class StoreCreateView(VendorMixin, StoreEditMixin, CreateWithInlinesView):
     model = Store
     template_name = "stores/dashboard/store_update.html"
     form_class = StoreForm
@@ -127,7 +129,7 @@ class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
 
         if form.is_valid():
             # Save the store instance to get a primary key
-            vendor = self.request.user.vendor
+            vendor = self.get_vendor()
             if not vendor:
                 messages.error(self.request, _("You do not have an associated vendor to create a store."))
                 return self.form_invalid(form)
@@ -144,7 +146,7 @@ class StoreCreateView(StoreEditMixin, CreateWithInlinesView):
             return self.form_invalid(form)
 
 
-class StoreUpdateView(StoreEditMixin, UpdateWithInlinesView):
+class StoreUpdateView(VendorMixin, StoreEditMixin, UpdateWithInlinesView):
     model = Store
     template_name = "stores/dashboard/store_update.html"
     form_class = StoreForm
@@ -153,11 +155,8 @@ class StoreUpdateView(StoreEditMixin, UpdateWithInlinesView):
     def get_object(self, queryset=None):
         """Override to ensure the store belongs to the current vendor."""
         obj = super().get_object(queryset)
-        print("obj: ", obj)
-        print("obj.vendor: ", obj.vendor)
-        print("self.request.user.vendor: ", self.request.user.vendor)
-
-        if obj.vendor != self.request.user.vendor:
+        
+        if obj.vendor != self.get_vendor():
             raise Http404("You do not have permission to access this store.")
         return obj
 
@@ -262,7 +261,6 @@ def change_store_status(request):
     
     # Fetch the store or return 404 if not found
     store = get_object_or_404(Store, id=store_id)
-    print("status: ", store, new_status, duration_choice)
 
     # Calculate duration based on duration_choice
     duration_mapping = {

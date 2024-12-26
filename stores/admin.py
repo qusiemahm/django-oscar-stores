@@ -1,6 +1,7 @@
 from django.contrib import admin
 from oscar.core.loading import get_model
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import get_language
 
 Store = get_model('stores', 'Store')
 # StoreGroup = get_model('stores', 'StoreGroup')
@@ -34,18 +35,19 @@ def deactivate_stores(modeladmin, request, queryset):
 deactivate_stores.short_description = "Deactivate selected stores"
 
 class StoreAdmin(admin.ModelAdmin):
+    lang = get_language()
     list_display = ('name', 'vendor', 'city', 'is_active')  # vendor__name corrected to vendor
-    prepopulated_fields = {"slug": ("name",)}
+    
     actions = [deactivate_stores, export_as_csv]
     # Add search fields
     search_fields = ('name', 'vendor__name', 'city', 'state', 'description')
     inlines = [OpeningPeriodInline, StoreStatusInline]
     # Add filters
-    list_filter = ('is_active', 'city', 'state', 'vendor', 'group')
+    list_filter = ('is_active', 'city', 'state', 'vendor',)
 
     fieldsets = (
     ('Basic Information', {
-        'fields': ('name', 'slug', 'vendor', 'group')
+        'fields': ('name_en', 'name_ar', 'slug', 'description_ar', 'description_en', 'vendor',)
     }),
     ('Location Information', {
         'fields': ('city', 'state', 'location'),

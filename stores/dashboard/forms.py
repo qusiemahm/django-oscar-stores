@@ -27,12 +27,13 @@ class StoreForm(forms.ModelForm):
     class Meta:
         model = Store
         fields = [
-            'name', 'manager_name', 'phone', 'email', 'reference', 'image',
-            'description', 'location', 'group', 'is_pickup_store', 'is_active',
+            'name_ar', 'name_en', 'manager_name', 'phone', 'email', 'reference', 'image',
+            'description_en', 'description_ar', 'location', 'group', 'is_pickup_store', 'is_active',
             'is_open',
         ]
         widgets = {
-            'description': forms.Textarea(attrs={'cols': 40, 'rows': 10}),
+            'description_en': forms.Textarea(attrs={'cols': 40, 'rows': 10}),
+            'description_ar': forms.Textarea(attrs={'cols': 40, 'rows': 10}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -83,7 +84,7 @@ class OpeningPeriodForm(forms.ModelForm):
 
 
 class DashboardStoreSearchForm(forms.Form):
-    name = forms.CharField(label=_('Store name'), required=False)
+    name = forms.CharField(label=_('Branch name'), required=False)
     address = forms.CharField(label=_('Address'), required=False)
 
     def is_empty(self):
