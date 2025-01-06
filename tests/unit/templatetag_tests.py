@@ -12,9 +12,9 @@ class StoreStockTest(TestCase):
         self.store1_location = '{"type": "Point", "coordinates": [87.39,12.02]}'
         self.store2_location = '{"type": "Point", "coordinates": [88.39,11.02]}'
         self.store1 = StoreFactory(
-            is_pickup_store=True, location=self.store1_location)
+            is_drive_thru=True, location=self.store1_location)
         self.store2 = StoreFactory(
-            is_pickup_store=True, location=self.store2_location)
+            is_drive_thru=True, location=self.store2_location)
 
         self.store_stock1 = StoreStockFactory(
             store=self.store1, product=self.product)

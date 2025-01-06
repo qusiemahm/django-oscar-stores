@@ -14,12 +14,12 @@ class TestTheListOfStores(WebTestCase):
 
         self.main_store = StoreFactory(
             name="Main store in Southbank",
-            is_pickup_store=True,
+            is_drive_thru=True,
             location=self.main_location,
         )
         self.other_store = StoreFactory(
             name="Other store in Northcote",
-            is_pickup_store=True,
+            is_drive_thru=True,
             location=self.other_location,
         )
 

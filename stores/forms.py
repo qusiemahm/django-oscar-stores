@@ -2,12 +2,28 @@ from django import forms
 from django.contrib.gis.geos import GEOSGeometry
 from django.utils.translation import gettext as _
 from oscar.core.loading import get_class, get_model
+from django.contrib.gis.forms.widgets import OSMWidget
 
 from stores.utils import get_geodetic_srid
 
 geocode = get_class('stores.services', 'geocode')
 StoreGroup = get_model('stores', 'StoreGroup')
+Store = get_model('stores', 'Store')
 
+
+class StoreLocationForm(forms.ModelForm):
+    class Meta:
+        model = Store
+        fields = '__all__'
+        widgets = {
+            'location': OSMWidget(attrs={
+                'default_lon': 500000,  # Replace with your longitude in the appropriate projection
+                'default_lat': 4000000,  # Replace with your latitude in the appropriate projection
+                'default_zoom': 12,  # Adjust zoom level
+                'map_width': 800,  # Optional: Set map width
+                'map_height': 500,  # Optional: Set map height
+            })
+        }
 
 class StoreSearchForm(forms.Form):
     latitude = forms.CharField(widget=forms.HiddenInput, required=False)

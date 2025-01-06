@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from django.db import IntegrityError
 from django.core.cache import cache
 from server.apps.vendor.mixins import VendorMixin
+from django.http import HttpResponseRedirect
 
 MapsContextMixin = get_class('stores.views', 'MapsContextMixin')
 (DashboardStoreSearchForm,
@@ -59,6 +60,19 @@ class StoreListView(VendorMixin, generic.ListView):
         data = super().get_context_data(**kwargs)
         data['filterform'] = self.filterform
         data['queryset_description'] = self.get_title()
+        
+        # Get the vendor and their business details
+        vendor = self.get_vendor()
+        if vendor:
+            branch_count = self.model.objects.filter(vendor=vendor).count()
+            max_branches = getattr(vendor.business_details, 'branches_count', 0)
+            data['branch_count'] = branch_count
+            data['max_branches'] = max_branches
+
+        # Add the current branch (if any) being created to the context
+        current_branch = self.request.GET.get('current_branch', None)
+        data['current_branch'] = current_branch
+
         return data
 
     def get_queryset(self):
@@ -111,9 +125,23 @@ class StoreCreateView(VendorMixin, StoreEditMixin, CreateWithInlinesView):
     form_class = StoreForm
     success_url = reverse_lazy('stores-dashboard:store-list')
 
+    def dispatch(self, request, *args, **kwargs):
+        vendor = request.user.vendor
+        branch_count = Store.objects.filter(vendor=vendor).count()
+        max_branches = getattr(vendor.business_details, 'branches_count', 0)
+
+        if branch_count >= max_branches:
+            messages.error(
+                request,
+                _("You have reached the maximum number of branches. Please contact us to upgrade your plan.")
+            )
+            return HttpResponseRedirect(reverse('stores-dashboard:store-list'))
+
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['title'] = _("Create new store")
+        ctx['title'] = _("Create new branch")
         return ctx
 
     def forms_invalid(self, form, inlines):
@@ -128,22 +156,33 @@ class StoreCreateView(VendorMixin, StoreEditMixin, CreateWithInlinesView):
         inlines = self.construct_inlines()
 
         if form.is_valid():
-            # Save the store instance to get a primary key
-            vendor = self.get_vendor()
-            if not vendor:
-                messages.error(self.request, _("You do not have an associated vendor to create a store."))
-                return self.form_invalid(form)
-            
-            form.instance.vendor = vendor
-            self.object = form.save()  # Save the primary instance
+            # Save Store so it has a primary key
+            store = form.save(commit=False)
+            store.vendor = self.request.user.vendor
+            store.save()
 
-            # Validate and save inlines
-            if all(inline.is_valid() for inline in inlines):
-                return self.forms_valid(form, inlines)
-            else:
+            # Now save inline formsets
+            all_valid = True
+            for inline in inlines:
+                inline.instance = store
+                if not inline.is_valid():
+                    all_valid = False
+            if not all_valid:
                 return self.forms_invalid(form, inlines)
+
+            # If everything is valid, commit each inline
+            for inline in inlines:
+                inline.save()
+
+            for inline_formset in inlines:
+                inline_formset.save()
+
+            # Continue with success
+            messages.success(request, "Store created successfully.")
+            return redirect(self.success_url)
         else:
-            return self.form_invalid(form)
+            return self.forms_invalid(form, inlines)
+
 
 
 class StoreUpdateView(VendorMixin, StoreEditMixin, UpdateWithInlinesView):
@@ -211,7 +250,7 @@ class StoreGroupCreateView(generic.CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['title'] = _("Create new store group")
+        ctx['title'] = _("Create new branch group")
         return ctx
 
     def form_valid(self, form):

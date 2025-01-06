@@ -153,7 +153,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (144.9655940000000101 -37.8153039999999976)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "dymocks-234-collins-st-melbourne", 
             "name": "Collins St (Melbourne)"
         }
@@ -168,7 +168,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (144.2788820000000101 -36.7597870000000029)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "bendigo", 
             "name": "Bendigo"
         }
@@ -183,7 +183,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (144.9628399999999999 -37.8268959999999979)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "camberwell", 
             "name": "Camberwell"
         }
@@ -198,7 +198,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (144.9724170000000072 -37.8138310000000004)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "collins-place", 
             "name": "Collins Place"
         }
@@ -213,7 +213,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (145.1255989999999940 -37.7843930000000015)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "dymocks-doncaster", 
             "name": "Dymocks Doncaster"
         }
@@ -228,7 +228,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (145.2301799999999901 -37.8123780000000025)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "eastland", 
             "name": "Eastland"
         }
@@ -243,7 +243,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (145.3043189999999925 -38.0173150000000035)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "fountain-gate", 
             "name": "Fountain Gate"
         }
@@ -258,7 +258,7 @@
             "image": "placeholder/store.png", 
             "is_active": true, 
             "location": "POINT (144.3618209999999920 -38.1478159999999988)", 
-            "is_pickup_store": true, 
+            "is_drive_thru": true, 
             "slug": "geelong", 
             "name": "Geelong"
         }

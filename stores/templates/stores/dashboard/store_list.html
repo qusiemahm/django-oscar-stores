@@ -23,7 +23,7 @@
 
 {% block header %}
     <div class="page-header">
-        <a href="{% url 'stores-dashboard:store-create' %}" class="btn btn-primary float-right"><i class="fas fa-plus-circle"></i> {% trans "Create new store" %}</a>
+        <a href="{% url 'stores-dashboard:store-create' %}" class="btn btn-primary float-right"><i class="fas fa-plus-circle"></i> {% trans "Create new branch" %}</a>
         <h1>{% trans "Store Management" %}</h1>
     </div>
 {% endblock header %}
@@ -57,7 +57,7 @@
                     <th>{% trans "Post Code" %}</th>
                     <th>{% trans "State" %}</th>
                     <th>{% trans "Country" %}</th>
-                    <th>{% trans "Is pick up store?" %}</th>
+                    <th>{% trans "Is drive thru?" %}</th>
                     <th>{% trans "Status" %}</th>
                     <th></th>
                 </tr>
@@ -70,7 +70,7 @@
                         <td>{{ store.address.state|default:"-" }}</td>
                         <td>{{ store.address.country }}</td>
                         <td>
-                            {% if store.is_pickup_store %}
+                            {% if store.is_drive_thru %}
                                 <span class="badge badge-success">{% trans "Yes" %}</span>
                             {% else %}
                                 <span class="badge badge-danger">{% trans "No" %}</span>

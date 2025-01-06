@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 from oscar.core.loading import get_class, get_model
+from server.apps.vendor.forms import render_file_upload
 
 OpeningPeriod = get_model('stores', 'OpeningPeriod')
 Store = get_model('stores', 'Store')
@@ -24,32 +25,44 @@ class StoreForm(forms.ModelForm):
         required=False,
         help_text="Indicates if the store is currently open based on its schedule and status."
     )
+    
     class Meta:
         model = Store
         fields = [
-            'name_ar', 'name_en', 'manager_name', 'phone', 'email', 'reference', 'image',
-            'description_en', 'description_ar', 'location', 'group', 'is_pickup_store', 'is_active',
+            'name_ar', 'name_en', 'slug', 'manager_name', 'phone', 'email', 'reference', 'image',
+            'description_en', 'description_ar', 'location', 'group', 'is_drive_thru', 'is_active',
             'is_open',
         ]
         widgets = {
-            'description_en': forms.Textarea(attrs={'cols': 40, 'rows': 10}),
-            'description_ar': forms.Textarea(attrs={'cols': 40, 'rows': 10}),
+            'description_en': forms.Textarea(attrs={'cols': 40, 'rows': 3}),
+            'description_ar': forms.Textarea(attrs={'cols': 40, 'rows': 3}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Make sure that we store the initial data as GeoJSON so that
-        # it is easier for us to use it in Javascript.
         instance = kwargs.get('instance', None)
         if instance:
             self.initial['location'] = instance.location.geojson
             self.initial['is_open'] = instance.is_open
 
-    def clean_reference(self):
-        ref = self.cleaned_data['reference']
-        if ref == "":
-            return None
-        return ref
+    def render_image_field(self):
+        """Custom render logic for the `image` field."""
+        return render_file_upload(
+            field_name="image",
+            label=_("Branch Image"),
+            help_text=self.fields['image'].help_text,
+            form_prefix=self.prefix if hasattr(self, "prefix") else None,
+            has_error=self.errors.get("image"),
+            tooltop_text=_("Upload your branch image"),
+        )
+
+    def as_p(self):
+        """Override default rendering to include custom image field rendering."""
+        original_rendered_fields = super().as_p()
+        image_field_html = self.render_image_field()
+        return original_rendered_fields.replace(
+            '{{ image }}', image_field_html
+        )
 
 
 class OpeningPeriodForm(forms.ModelForm):
@@ -60,11 +73,11 @@ class OpeningPeriodForm(forms.ModelForm):
         widgets = {
             'start': forms.TimeInput(
                 format='%H:%M',
-                attrs={'placeholder': _("e.g. 9 AM, 11:30, etc.")}
+                attrs={'placeholder': _("HH:MM")}
             ),
             'end': forms.TimeInput(
                 format='%H:%M',
-                attrs={'placeholder': _("e.g. 5 PM, 18:30, etc.")}
+                attrs={'placeholder': _("HH:MM")}
             ),
         }
 

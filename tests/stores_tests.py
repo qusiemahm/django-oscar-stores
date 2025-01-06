@@ -12,10 +12,10 @@ class TestStore(TestCase):
 
     def test_querying_available_pickup_stores(self):
         sample_location = '{"type": "Point", "coordinates": [88.39,11.02]}'
-        store1 = StoreFactory(is_pickup_store=True, location=sample_location)
-        store2 = StoreFactory(is_pickup_store=True, location=sample_location)
-        StoreFactory(is_pickup_store=False, location=sample_location)
-        store4 = StoreFactory(is_pickup_store=True, location=sample_location)
+        store1 = StoreFactory(is_drive_thru=True, location=sample_location)
+        store2 = StoreFactory(is_drive_thru=True, location=sample_location)
+        StoreFactory(is_drive_thru=False, location=sample_location)
+        store4 = StoreFactory(is_drive_thru=True, location=sample_location)
 
         stores = list(Store.objects.pickup_stores())
 
@@ -91,7 +91,7 @@ class TestASignedInUser(StoresWebTest):
         create_form['location'] = '{"type": "Point", "coordinates": [30.203332,44.33333] }'
 
         create_form['description'] = 'A short description of the store'
-        create_form['is_pickup_store'] = False
+        create_form['is_drive_thru'] = False
         create_form['is_active'] = True
 
         page = create_form.submit()
@@ -108,7 +108,7 @@ class TestASignedInUser(StoresWebTest):
             store.description,
             'A short description of the store'
         )
-        self.assertEqual(store.is_pickup_store, False)
+        self.assertEqual(store.is_drive_thru, False)
         self.assertEqual(store.is_active, True)
 
         self.assertEqual(store.address.line1, '123 Invisible Street')

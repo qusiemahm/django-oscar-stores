@@ -6,13 +6,13 @@ from django.utils.translation import gettext as _
 from oscar.apps.address.abstract_models import AbstractAddress
 from oscar.core.utils import slugify
 from django.core.cache import cache
+from django.utils.timezone import make_aware, now
 
 from server.apps.vendor.models import Vendor
 from stores.managers import StoreManager
 from stores.utils import get_geodetic_srid
 from django.utils import timezone
-from datetime import time
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 
 # Re-use Oscar's address model
@@ -98,7 +98,7 @@ class Store(models.Model):
         blank=True
     )
 
-    is_pickup_store = models.BooleanField(_("Is pickup store"), default=True)
+    is_drive_thru = models.BooleanField(_("Is Drive Trru"), default=False)
     is_active = models.BooleanField(_("Is active"), default=True)
 
     objects = StoreManager()
@@ -109,8 +109,21 @@ class Store(models.Model):
         app_label = 'stores'
 
     def save(self, *args, **kwargs):
+        if self.pk is None:  # Check only for new branches
+            # Fetch the vendor's business details
+            business_details = getattr(self.vendor, 'business_details', None)
+            if business_details:
+                max_branches = business_details.branches_count
+                current_branches = self.vendor.branches.count()
+                if current_branches >= max_branches:
+                    raise ValidationError(
+                        _('The maximum number of branches (%d) for this vendor has been reached.') % max_branches
+                    )
         if not self.slug:
             self.slug = slugify(self.name)
+        if self.pk:
+            cache_key = f'store_status_{self.pk}'
+            cache.delete(cache_key)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -321,19 +334,20 @@ class StoreStatus(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)  # Assign set_at if new
 
-        super().save(*args, **kwargs)  # Save to assign set_at if new
-
+        # Calculate expires_at based on duration
         if self.duration:
-            # Calculate expires_at based on duration
-            self.expires_at = self.set_at + self.duration
+            new_expires_at = self.set_at + self.duration
         else:
-            # Permanent status
-            self.expires_at = None
+            # Permanent status: expires at end of the day
+            today = self.set_at.date()
+            new_expires_at = datetime.combine(today, time(23, 59, 59))
+            new_expires_at = make_aware(new_expires_at)
 
-        # Avoid recursive save calls by checking if expires_at needs updating
-        if self.expires_at != self.__class__.objects.get(pk=self.pk).expires_at:
-            self.save(update_fields=['expires_at'])
+        # Update expires_at without triggering save() again
+        StoreStatus.objects.filter(pk=self.pk).update(expires_at=new_expires_at)
 
     def __str__(self):
         return f"{self.store.name} - {self.get_status_display()}"
