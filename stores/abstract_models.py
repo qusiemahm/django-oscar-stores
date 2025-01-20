@@ -8,6 +8,7 @@ from oscar.core.utils import slugify
 from django.core.cache import cache
 from django.utils.timezone import make_aware, now
 
+from server.apps.user.models import City
 from server.apps.vendor.models import Vendor
 from stores.managers import StoreManager
 from stores.utils import get_geodetic_srid
@@ -23,7 +24,7 @@ class StoreAddress(AbstractAddress):
         verbose_name=_("Store"),
         related_name="address"
     )
-
+    # line4 = None
     class Meta:
         abstract = True
         app_label = 'stores'
@@ -85,8 +86,8 @@ class Store(models.Model):
         srid=get_geodetic_srid(),
     )
     is_main = models.BooleanField(default=False)
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
 
 
     group = models.ForeignKey(
@@ -260,66 +261,66 @@ class OpeningPeriod(models.Model):
             raise ValidationError(_("Start must be before end"))
 
 
-class StoreStock(models.Model):
-    store = models.ForeignKey(
-        'stores.Store',
-        models.CASCADE,
-        verbose_name=_("Store"),
-        related_name='stock'
-    )
-    product = models.ForeignKey(
-        'catalogue.Product',
-        models.CASCADE,
-        verbose_name=_("Product"),
-        related_name="store_stock"
-    )
+# class StoreStock(models.Model):
+#     store = models.ForeignKey(
+#         'stores.Store',
+#         models.CASCADE,
+#         verbose_name=_("Store"),
+#         related_name='stock'
+#     )
+#     product = models.ForeignKey(
+#         'catalogue.Product',
+#         models.CASCADE,
+#         verbose_name=_("Product"),
+#         related_name="store_stock"
+#     )
 
-    # Stock level information
-    num_in_stock = models.PositiveIntegerField(
-        _("Number in stock"),
-        default=0,
-        blank=True,
-        null=True)
+#     # Stock level information
+#     num_in_stock = models.PositiveIntegerField(
+#         _("Number in stock"),
+#         default=0,
+#         blank=True,
+#         null=True)
 
-    # The amount of stock allocated in store but not fed back to the master
-    num_allocated = models.IntegerField(
-        _("Number allocated"),
-        default=0,
-        blank=True,
-        null=True)
+#     # The amount of stock allocated in store but not fed back to the master
+#     num_allocated = models.IntegerField(
+#         _("Number allocated"),
+#         default=0,
+#         blank=True,
+#         null=True)
 
-    location = models.CharField(
-        _("In store location"),
-        max_length=50,
-        blank=True,
-        null=True)
+#     location = models.CharField(
+#         _("In store location"),
+#         max_length=50,
+#         blank=True,
+#         null=True)
 
-    # Date information
-    date_created = models.DateTimeField(
-        _("Date created"),
-        auto_now_add=True)
-    date_updated = models.DateTimeField(
-        _("Date updated"),
-        auto_now=True,
-        db_index=True)
+#     # Date information
+#     date_created = models.DateTimeField(
+#         _("Date created"),
+#         auto_now_add=True)
+#     date_updated = models.DateTimeField(
+#         _("Date updated"),
+#         auto_now=True,
+#         db_index=True)
 
-    class Meta:
-        abstract = True
-        verbose_name = _("Store stock record")
-        verbose_name_plural = _("Store stock records")
-        unique_together = ("store", "product")
-        app_label = 'stores'
+#     class Meta:
+#         abstract = True
+#         verbose_name = _("Store stock record")
+#         verbose_name_plural = _("Store stock records")
+#         unique_together = ("store", "product")
+#         app_label = 'stores'
 
-    objects = Manager()
+#     objects = Manager()
 
-    def __str__(self):
-        if self.store and self.product:
-            return "%s @ %s" % (self.product.title, self.store.name)
-        return "Store Stock"
+#     def __str__(self):
+#         if self.store and self.product:
+#             return "%s @ %s" % (self.product.title, self.store.name)
+#         return "Store Stock"
 
-    @property
-    def is_available_to_buy(self):
-        return self.num_in_stock > self.num_allocated
+#     @property
+#     def is_available_to_buy(self):
+#         return self.num_in_stock > self.num_allocated
 
 class StoreStatus(models.Model):
     class StatusChoices(models.TextChoices):

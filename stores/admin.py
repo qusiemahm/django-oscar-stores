@@ -6,7 +6,8 @@ from django.utils.translation import get_language
 Store = get_model('stores', 'Store')
 # StoreGroup = get_model('stores', 'StoreGroup')
 OpeningPeriod = get_model('stores', 'OpeningPeriod')
-StoreStock = get_model('stores', 'StoreStock')
+# StoreStock = get_model('stores', 'StoreStock')
+StoreAddress = get_model('stores', 'StoreAddress')
 StoreStatus = get_model('stores', 'StoreStatus')
 from django.http import HttpResponse
 import csv
@@ -70,5 +71,6 @@ admin.site.index_title = _("Manage Branches")
 admin.site.register(Store, StoreAdmin)
 # admin.site.register(StoreGroup)
 admin.site.register(OpeningPeriod)
-admin.site.register(StoreStock)
+# admin.site.register(StoreStock)
+admin.site.register(StoreAddress)
 admin.site.register(StoreStatus, StoreStatusAdmin)
