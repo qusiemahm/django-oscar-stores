@@ -46,6 +46,14 @@ class StoreForm(forms.ModelForm):
             'location': GoogleMapPointFieldWidget,  # Correct widget class name
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark specific fields as required
+        self.fields['name_en'].required = True
+        self.fields['name_ar'].required = True
+        self.fields['description_en'].required = True
+        self.fields['description_ar'].required = True
+
 class StoreAdmin(admin.ModelAdmin):
     lang = get_language()
     list_display = ('name', 'vendor', 'city', 'is_active')  # vendor__name corrected to vendor
