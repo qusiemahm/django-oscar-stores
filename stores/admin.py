@@ -2,6 +2,8 @@ from django.contrib import admin
 from oscar.core.loading import get_model
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import get_language
+from django import forms
+from mapwidgets.widgets import GoogleMapPointFieldWidget
 
 Store = get_model('stores', 'Store')
 # StoreGroup = get_model('stores', 'StoreGroup')
@@ -35,10 +37,20 @@ def deactivate_stores(modeladmin, request, queryset):
     queryset.update(is_active=False)
 deactivate_stores.short_description = "Deactivate selected stores"
 
+
+class StoreForm(forms.ModelForm):
+    class Meta:
+        model = Store
+        fields = '__all__'
+        widgets = {
+            'location': GoogleMapPointFieldWidget,  # Correct widget class name
+        }
+
 class StoreAdmin(admin.ModelAdmin):
     lang = get_language()
     list_display = ('name', 'vendor', 'city', 'is_active')  # vendor__name corrected to vendor
-    
+    form = StoreForm
+
     actions = [deactivate_stores, export_as_csv]
     # Add search fields
     search_fields = ('name', 'vendor__name', 'city', 'state', 'description')

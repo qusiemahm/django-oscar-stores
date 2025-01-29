@@ -7,6 +7,7 @@ from oscar.apps.address.abstract_models import AbstractAddress
 from oscar.core.utils import slugify
 from django.core.cache import cache
 from django.utils.timezone import make_aware, now
+from django.contrib.gis.geos import Point
 
 from server.apps.user.models import City
 from server.apps.vendor.models import Vendor
@@ -84,6 +85,7 @@ class Store(models.Model):
     location = PointField(
         _("Location"),
         srid=get_geodetic_srid(),
+        default=Point(46.6753, 24.7136)
     )
     is_main = models.BooleanField(default=False)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True)

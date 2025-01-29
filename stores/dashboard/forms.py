@@ -5,6 +5,7 @@ from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 from oscar.core.loading import get_class, get_model
 from server.apps.vendor.forms import render_file_upload
+from django.forms import widgets
 
 OpeningPeriod = get_model('stores', 'OpeningPeriod')
 Store = get_model('stores', 'Store')
@@ -17,9 +18,17 @@ class StoreAddressForm(forms.ModelForm):
         fields = [
             'line1', 'line2', 'line3', 'line4', 'postcode', 'country']
 
+class GoogleMapWidget(widgets.TextInput):
+    class Media:
+        js = (
+            "https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places",
+            "stores/js/google_maps.js",  # Create this JS file
+        )
 
 class StoreForm(forms.ModelForm):
-    location = fields.GeometryField(widget=forms.HiddenInput())
+    location = forms.CharField(
+        widget=GoogleMapWidget(attrs={'id': 'id_location', 'readonly': 'readonly'})
+    )   
     is_open = forms.BooleanField(
         label="Is Open",
         required=False,
