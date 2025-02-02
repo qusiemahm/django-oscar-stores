@@ -58,7 +58,7 @@ class StoreAdmin(admin.ModelAdmin):
     lang = get_language()
     list_display = ('name', 'vendor', 'city', 'is_active')  # vendor__name corrected to vendor
     form = StoreForm
-
+    view_on_site = False
     actions = [deactivate_stores, export_as_csv]
     # Add search fields
     search_fields = ('name', 'vendor__name', 'city', 'state', 'description')
@@ -71,7 +71,7 @@ class StoreAdmin(admin.ModelAdmin):
         'fields': ('name_en', 'name_ar', 'slug', 'description_ar', 'description_en', 'vendor', 'image')
     }),
     ('Location Information', {
-        'fields': ('city', 'state', 'location'),
+        'fields': ('city', 'location'),
         'classes': ('collapse',),
     }),
     ('Status', {
@@ -85,9 +85,9 @@ class StoreStatusAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     search_fields = ('store__name',)
 
-admin.site.site_header = _("Branch Management")
-admin.site.site_title = _("Branch Admin")
-admin.site.index_title = _("Manage Branches")
+admin.site.site_header = _("JAY")
+admin.site.site_title = _("JAY Admin")
+admin.site.index_title = _("JAY Admin")
 admin.site.register(Store, StoreAdmin)
 # admin.site.register(StoreGroup)
 admin.site.register(OpeningPeriod)
