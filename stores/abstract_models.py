@@ -103,7 +103,12 @@ class Store(models.Model):
 
     is_drive_thru = models.BooleanField(_("Is Drive Trru"), default=False)
     is_active = models.BooleanField(_("Is active"), default=True)
-
+    
+    preparing_time = models.PositiveIntegerField(
+        _("Preparing Time (minutes)"),
+        default=30,  # Default preparation time
+        help_text=_("Estimated time (in minutes) required for order preparation")
+    )
     objects = StoreManager()
 
     class Meta:
@@ -198,7 +203,6 @@ class Store(models.Model):
             set_at__lte=now,
             expires_at__gte=now
         ).order_by('-set_at').first()
-        print("active_status: ", active_status)
         if active_status:
             status_display = active_status.get_status_display()
             if active_status.status in [StoreStatus.StatusChoices.BUSY, StoreStatus.StatusChoices.CLOSED]:

@@ -68,7 +68,7 @@ class StoreAdmin(admin.ModelAdmin):
 
     fieldsets = (
     ('Basic Information', {
-        'fields': ('name_en', 'name_ar', 'slug', 'description_ar', 'description_en', 'vendor', 'image')
+        'fields': ('name_en', 'name_ar', 'slug', 'description_ar', 'description_en', 'vendor', 'preparing_time', 'image')
     }),
     ('Location Information', {
         'fields': ('city', 'location'),
