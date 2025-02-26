@@ -142,7 +142,7 @@ OSCAR_DASHBOARD_NAVIGATION.append(
         ]
     })
 
-OSCAR_ALLOW_ANON_CHECKOUT = True
+OSCAR_ALLOW_ANON_CHECKOUT = False
 
 OSCAR_SHOP_TAGLINE = "Stores extension"
 
