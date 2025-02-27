@@ -109,6 +109,16 @@ class Store(models.Model):
         default=30,  # Default preparation time
         help_text=_("Estimated time (in minutes) required for order preparation")
     )
+    rating = models.FloatField(
+        _("Rating"),
+        default=0,
+        help_text=_("Average rating of the store")
+    )
+    total_ratings = models.PositiveIntegerField(
+        _("Total Ratings"),
+        default=0,
+        help_text=_("Total number of ratings received")
+    )
     objects = StoreManager()
 
     class Meta:
@@ -363,4 +373,80 @@ class StoreStatus(models.Model):
         verbose_name = _("Store Status")
         verbose_name_plural = _("Store Statuses")
         ordering = ['-set_at']
+        
+
+class StoreRating(models.Model):
+    store = models.ForeignKey(
+        'stores.Store',
+        on_delete=models.CASCADE,
+        related_name='ratings',
+        verbose_name=_("Store")
+    )
+    order = models.OneToOneField(
+        'order.Order',
+        on_delete=models.CASCADE,
+        related_name='store_rating',
+        verbose_name=_("Order"),
+        help_text=_("The order associated with this rating")
+    )
+    customer = models.ForeignKey(
+        'user.Customer',
+        on_delete=models.CASCADE,
+        related_name='store_ratings',
+        verbose_name=_("Customer")
+    )
+    rating = models.PositiveSmallIntegerField(
+        _("Rating"),
+        choices=[(i, str(i)) for i in range(1, 6)],  # 1-5 rating scale
+        help_text=_("Rate from 1 to 5 stars")
+    )
+    comment = models.TextField(
+        _("Comment"),
+        blank=True,
+        null=True,
+        help_text=_("Optional feedback about your experience")
+    )
+    created_at = models.DateTimeField(
+        _("Created at"),
+        auto_now_add=True
+    )
+
+    class Meta:
+        abstract = True
+        verbose_name = _("Store Rating")
+        verbose_name_plural = _("Store Ratings")
+        unique_together = ('store', 'order')  # Ensure one rating per order
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['store', 'rating']),
+            models.Index(fields=['customer', 'created_at'])
+        ]
+
+    def __str__(self):
+        return f"Order #{self.order.number} - {self.store.name} ({self.rating} stars)"
+
+    def clean(self):
+        """Validate that the order belongs to the store and customer"""
+        if self.order.user != self.customer.user:
+            raise ValidationError(_("You can only rate orders that belong to you."))
+        
+        if self.store != self.order.store:
+            raise ValidationError(_("Rating must be for the store that fulfilled the order."))
+        
+        if self.order.status != 'Completed':
+            raise ValidationError(_("You can only rate completed orders."))
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        
+        # Update store's average rating and total ratings
+        store_ratings = self.store.ratings.aggregate(
+            avg_rating=models.Avg('rating'),
+            total_ratings=models.Count('id')
+        )
+        
+        # Update the store model
+        self.store.rating = store_ratings['avg_rating'] or 0
+        self.store.total_ratings = store_ratings['total_ratings'] or 0
+        self.store.save()
         

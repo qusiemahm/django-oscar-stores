@@ -40,6 +40,13 @@ if not is_model_registered('stores', 'OpeningPeriod'):
     __all__.append('OpeningPeriod')
 
 
+if not is_model_registered('stores', 'StoreRating'):
+    class StoreRating(abstract_models.StoreRating):
+        pass
+
+    __all__.append('StoreRating')
+
+
 # if not is_model_registered('stores', 'StoreStock'):
 #     class StoreStock(abstract_models.StoreStock):
 #         pass
@@ -51,4 +58,5 @@ auditlog.register(StoreAddress)
 auditlog.register(StoreGroup)
 auditlog.register(Store)
 auditlog.register(OpeningPeriod)
+auditlog.register(StoreRating)
 # auditlog.register(StoreStock)
