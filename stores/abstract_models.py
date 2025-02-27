@@ -433,8 +433,8 @@ class StoreRating(models.Model):
         if self.store != self.order.store:
             raise ValidationError(_("Rating must be for the store that fulfilled the order."))
         
-        if self.order.status != 'Completed':
-            raise ValidationError(_("You can only rate completed orders."))
+        # if self.order.status != 'Completed':
+        #     raise ValidationError(_("You can only rate completed orders."))
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
