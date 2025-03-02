@@ -40,7 +40,7 @@ class StoreForm(forms.ModelForm):
         fields = [
             'name_ar', 'name_en', 'slug', 'manager_name', 'phone', 'email', 'reference', 'image',
             'description_en', 'description_ar', 'location', 'group', 'is_drive_thru', 'is_active',
-            'preparing_time', 'is_open',
+            'preparing_time','minimum_order_value', 'is_open',
         ]
         widgets = {
             'description_en': forms.Textarea(attrs={'cols': 40, 'rows': 3}),
