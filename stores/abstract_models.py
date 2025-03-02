@@ -8,6 +8,7 @@ from oscar.core.utils import slugify
 from django.core.cache import cache
 from django.utils.timezone import make_aware, now
 from django.contrib.gis.geos import Point
+from decimal import Decimal as D
 
 from server.apps.user.models import City
 from server.apps.vendor.models import Vendor
@@ -100,7 +101,13 @@ class Store(models.Model):
         null=True,
         blank=True
     )
-
+    minimum_order_value = models.DecimalField(
+        _("Minimum Order Value"),
+        max_digits=12,
+        decimal_places=2,
+        default=15,
+        help_text=_("Minimum order value required for this store")
+    )
     is_drive_thru = models.BooleanField(_("Is Drive Trru"), default=False)
     is_active = models.BooleanField(_("Is active"), default=True)
     
@@ -116,7 +123,7 @@ class Store(models.Model):
     )
     total_ratings = models.PositiveIntegerField(
         _("Total Ratings"),
-        default=0,
+        default=15,
         help_text=_("Total number of ratings received")
     )
     objects = StoreManager()
@@ -125,6 +132,26 @@ class Store(models.Model):
         abstract = True
         ordering = ('name',)
         app_label = 'stores'
+        
+    def validate_minimum_order(self, basket_total):
+        """
+        Validate if basket meets minimum order requirement
+        
+        Args:
+            basket_total (Decimal or str): Total amount of the basket
+            
+        Returns:
+            tuple: (bool, str) - (is_valid, error_message)
+        """
+        # Convert basket_total to Decimal if it's not already
+        basket_total = D(str(basket_total))
+        minimum_value = D(str(self.minimum_order_value))
+        
+        if basket_total < minimum_value:
+            return False, _("Minimum order value for this store is %(amount)s") % {
+                'amount': minimum_value
+            }
+        return True, None
 
     def save(self, *args, **kwargs):
         if self.pk is None:  # Check only for new branches
