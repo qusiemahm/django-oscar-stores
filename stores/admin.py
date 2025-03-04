@@ -65,10 +65,10 @@ class StoreAdmin(admin.ModelAdmin):
     inlines = [OpeningPeriodInline, StoreStatusInline]
     # Add filters
     list_filter = ('is_active', 'city', 'state', 'vendor',)
-
+    readonly_fields = ('rating', 'total_ratings')
     fieldsets = (
     ('Basic Information', {
-        'fields': ('name_en', 'name_ar', 'slug', 'description_ar', 'description_en', 'vendor', 'preparing_time', 'image')
+        'fields': ('name_en', 'name_ar', 'slug', 'description_ar', 'description_en', 'vendor', 'preparing_time','minimum_order_value','rating','total_ratings', 'image')
     }),
     ('Location Information', {
         'fields': ('city', 'location'),
