@@ -206,10 +206,9 @@ class Store(models.Model):
     def _get_current_status(self):
         """
         Determines the current status of the store.
-        Implements caching with a 60-second timeout to improve performance.
-
         Returns:
-            Tuple[str, timedelta or None]: A tuple containing the status and the remaining time if applicable.
+            Tuple[str, timedelta or None]: Status and remaining time (if applicable).
+        Prioritizes opening hours: returns 'Closed' if outside working hours.
         """
         cache_key = f'store_status_{self.pk}'
         cached_status = cache.get(cache_key)
@@ -220,26 +219,28 @@ class Store(models.Model):
         current_time = now.time()
         current_weekday = now.isoweekday()
 
-        # Check if current time is within opening hours
+        # Step 1: Check OpeningPeriod
         opening_periods = self.opening_periods.filter(weekday=current_weekday)
         within_opening_hours = False
         for period in opening_periods:
-            start_time = period.start if period.start else time(0, 0)
-            end_time = period.end if period.end else time(23, 59, 59)
+            start_time = period.start or time(0, 0)
+            end_time = period.end or time(23, 59, 59)
             if start_time <= current_time <= end_time:
                 within_opening_hours = True
                 break
 
         if not within_opening_hours:
+            # Not within opening hours, mark as Closed without checking StoreStatus
             status = 'Closed'
             cache.set(cache_key, (status, None), timeout=60)
             return status, None
 
-        # Within opening hours, check the latest active StoreStatus
+        # Step 2: Within opening hours, check the latest StoreStatus
         active_status = self.statuses.filter(
             set_at__lte=now,
             expires_at__gte=now
         ).order_by('-set_at').first()
+
         if active_status:
             status_display = active_status.get_status_display()
             if active_status.status in [StoreStatus.StatusChoices.BUSY, StoreStatus.StatusChoices.CLOSED]:
@@ -250,9 +251,9 @@ class Store(models.Model):
             elif active_status.status == StoreStatus.StatusChoices.OPEN:
                 status = 'Open'
             else:
-                status = 'Closed'  # Default to 'Closed' for unrecognized statuses
+                status = 'Closed'  # Fallback
         else:
-            # No active status, assume open as within opening hours
+            # No active status, default to open since within time range
             status = 'Open'
 
         cache.set(cache_key, (status, None), timeout=60)
