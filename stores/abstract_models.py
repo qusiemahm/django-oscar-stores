@@ -123,7 +123,7 @@ class Store(models.Model):
     )
     total_ratings = models.PositiveIntegerField(
         _("Total Ratings"),
-        default=15,
+        default=0,
         help_text=_("Total number of ratings received")
     )
     objects = StoreManager()
