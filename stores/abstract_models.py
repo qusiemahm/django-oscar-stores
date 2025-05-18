@@ -301,9 +301,50 @@ class OpeningPeriod(models.Model):
         app_label = 'stores'
 
     def clean(self):
+
+        super().clean() 
+
+
         if self.start and self.end and self.end <= self.start:
             raise ValidationError(_("Start must be before end"))
 
+        # Build a queryset of other periods for the same store+weekday
+        qs = type(self).objects.filter(store=self.store,
+                                       weekday=self.weekday)
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)   # exclude the current row when editing
+
+        # 2 ─ duplicate “Closed” rows
+        if self.start is None and self.end is None:
+            if qs.filter(start__isnull=True, end__isnull=True).exists():
+                raise ValidationError(
+                    _("A closed record already exists for this weekday.")
+                )
+            return                          # no need to check overlap
+
+        # 3 ─ overlapping time ranges
+        # Two ranges [a, b) and [c, d) overlap iff a < d and c < b
+        conflict = qs.filter(
+            start__lt=self.end,             # a < d
+            end__gt=self.start,
+            weekday=self.weekday,
+            store=self.store,
+            
+        ).first()
+
+        if conflict:
+            raise ValidationError(
+                _("This opening period overlaps an existing period: "
+                  "%(day)s %(start)s–%(end)s") % {
+                    "day": conflict.get_weekday_display(),
+                    "start": conflict.start,
+                    "end": conflict.end
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 # class StoreStock(models.Model):
 #     store = models.ForeignKey(
