@@ -85,12 +85,20 @@ class StoreStatusAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     search_fields = ('store__name',)
 
+
+class OpeningPeriodAdmin(admin.ModelAdmin):
+    list_display = ('id', 'store', 'store__vendor__name', 'weekday', 'start', 'end')
+    list_filter = ('store__vendor__name',)
+    search_fields = ('store__name','store__vendor__name',)
+    ordering = ('store__vendor__name',)
+
+
 admin.site.site_header = _("JAY")
 admin.site.site_title = _("JAY Admin")
 admin.site.index_title = _("JAY Admin")
 admin.site.register(Store, StoreAdmin)
 # admin.site.register(StoreGroup)
-admin.site.register(OpeningPeriod)
+admin.site.register(OpeningPeriod, OpeningPeriodAdmin)
 # admin.site.register(StoreStock)
 admin.site.register(StoreAddress)
 admin.site.register(StoreStatus, StoreStatusAdmin)
