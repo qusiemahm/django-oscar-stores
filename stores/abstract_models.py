@@ -16,7 +16,7 @@ from stores.managers import StoreManager
 from stores.utils import get_geodetic_srid
 from django.utils import timezone
 from datetime import datetime, time, timedelta
-
+from django.utils.timezone import localtime
 
 # Re-use Oscar's address model
 class StoreAddress(AbstractAddress):
@@ -215,7 +215,7 @@ class Store(models.Model):
         if cached_status is not None:
             return cached_status
 
-        now = timezone.now()
+        now = localtime(timezone.now())
         current_time = now.time()
         current_weekday = now.isoweekday()
 
